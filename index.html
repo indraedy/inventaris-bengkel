@@ -1,9 +1,215 @@
-<html>
-    <h1>Inventaris Bengkel TI</h1>
-    <p>SMK Negeri 1</p>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Peminjaman Alat Bengkel TI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eef1ee;--surface:#fff;--ink:#14211f;--mute:#5d6b68;--line:#d3dbd8;--brand:#0f3b3a;--onbrand:#fff;--hi:#f2c230;--ok:#1f7a4d;--bad:#b3392f;--warn:#9a6a00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1514;--surface:#17211f;--ink:#e8efed;--mute:#9aaba7;--line:#2a3835;--brand:#f2c230;--onbrand:#14211f;--hi:#f2c230;--ok:#58c58d;--bad:#ff7d72;--warn:#e8b53a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1514;--surface:#17211f;--ink:#e8efed;--mute:#9aaba7;--line:#2a3835;--brand:#f2c230;--onbrand:#14211f;--hi:#f2c230;--ok:#58c58d;--bad:#ff7d72;--warn:#e8b53a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif}
+h1,h2,h3{font-family:"Barlow Condensed",Impact,sans-serif;margin:0;letter-spacing:.2px}
+header{background:var(--brand);color:var(--onbrand);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:24px;flex:1;min-width:180px}
+header small{opacity:.8}
+main{max-width:980px;margin:0 auto;padding:16px}
+nav{display:flex;gap:6px;overflow-x:auto;margin-bottom:16px}
+nav button{white-space:nowrap}
+button,select,input{font:inherit;color:inherit}
+button{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:6px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--hi);outline-offset:1px}
+button.on,button.pri{background:var(--brand);color:var(--onbrand);border-color:var(--brand);font-weight:600}
+button.sm{padding:4px 10px;font-size:14px}
+button.bad{color:var(--bad);border-color:var(--bad)}
+input,select{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 10px;max-width:100%}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--brand);border-radius:8px;padding:12px 14px}
+.stat b{font:700 36px/1 "Barlow Condensed",sans-serif;display:block}
+.stat.late{border-left-color:var(--bad)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--mute);font-weight:600}
+.tag{display:inline-block;padding:1px 9px;border-radius:99px;border:1px solid currentColor;font-size:13px;font-weight:600}
+.diajukan,.disetujui{color:var(--warn)}.dipinjam,.dikembalikan{color:var(--ok)}.terlambat,.hilang,.rusak,.ditolak{color:var(--bad)}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;min-width:90px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{padding:10px 14px;border-radius:6px;background:var(--hi);color:#14211f;margin-bottom:12px;font-weight:500}
+.mute{color:var(--mute)}
+.login{display:grid;gap:10px;max-width:420px;margin:30px auto}
+.login button{text-align:left;padding:14px}
+textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:8px;font:13px monospace}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+const KEY='bengkelti_v2';
+const iso=d=>d.toISOString().slice(0,10);
+const add=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const today=()=>iso(new Date());
+const seed=()=>({
+ users:[{id:1,nama:'Rizky (siswa)',role:'peminjam'},{id:2,nama:'Bu Sari (guru)',role:'peminjam'},{id:3,nama:'Bu Dewi (PLP)',role:'plp'},{id:4,nama:'Pak Hasan (Kepala Bengkel)',role:'kepala'},{id:5,nama:'Pak Indra (Admin)',role:'admin'}],
+ tools:[{id:1,kode:'ALT-001',nama:'Multimeter digital',kat:'Alat ukur',total:6,tersedia:5,lokasi:'Lemari A'},
+  {id:2,kode:'ALT-002',nama:'Tang crimping',kat:'Perkakas',total:8,tersedia:6,lokasi:'Lemari B'},
+  {id:3,kode:'ALT-003',nama:'Laptop praktik',kat:'Perangkat komputer',total:10,tersedia:10,lokasi:'Rak C'},
+  {id:4,kode:'ALT-004',nama:'LAN tester',kat:'Alat ukur',total:4,tersedia:4,lokasi:'Lemari A'}],
+ loans:[{id:1,uid:1,tid:1,n:1,ajuan:add(-6),due:add(-2),kembali:null,status:'dipinjam',ext:0,kout:'baik',kin:null},
+  {id:2,uid:2,tid:3,n:2,ajuan:today(),due:add(5),kembali:null,status:'diajukan',ext:0,kout:null,kin:null},
+  {id:3,uid:1,tid:2,n:2,ajuan:add(-6),due:add(1),kembali:null,status:'dipinjam',ext:0,kout:'baik',kin:null}],
+ logs:[]
+});
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S)S=seed();
+let me=null,tab='',flash='';
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const U=id=>S.users.find(u=>u.id==id),T=id=>S.tools.find(t=>t.id==id),L=id=>S.loans.find(l=>l.id==id);
+const st=l=>l.status==='dipinjam'&&l.due<today()?'terlambat':l.status;
+const lateOf=uid=>S.loans.some(l=>l.uid==uid&&st(l)==='terlambat');
+const log=(a,l)=>{S.logs.unshift({w:new Date().toLocaleString('id-ID'),u:me.nama,a,l})};
+const tag=s=>`<span class="tag ${s}">${s}</span>`;
+const fd=d=>d?new Date(d+'T00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'-';
+const tabs={peminjam:['Katalog','Pindai QR','Pinjaman saya'],plp:['Pengajuan','Pindai QR','Data alat','Pengingat'],kepala:['Dashboard','Laporan'],admin:['Pengguna','Data alat']};
 
-<ul>
-  <li>Multimeter: 12 unit</li>
-  <li>Tang crimping: 8 unit</li>
-</ul>
+function loanRows(list,acts){
+ if(!list.length)return '<p class="mute">Belum ada data.</p>';
+ return `<div class="tw"><table><tr><th>Peminjam</th><th>Alat</th><th>Jml</th><th>Jatuh tempo</th><th>Status</th><th></th></tr>${list.map(l=>`<tr><td>${U(l.uid).nama}</td><td>${T(l.tid).nama}</td><td>${l.n}</td><td>${fd(l.due)}</td><td>${tag(st(l))}</td><td class="row">${acts?acts(l):''}</td></tr>`).join('')}</table></div>`;
+}
+function vKatalog(){
+ const late=lateOf(me.id);
+ return `${late?'<div class="msg">Anda masih punya pinjaman terlambat. Kembalikan alat itu dulu sebelum meminjam lagi.</div>':''}
+ <div class="card tw"><table><tr><th>Alat</th><th>Kategori</th><th>Tersedia</th><th>Jumlah</th><th>Kembali pada</th><th></th></tr>
+ ${S.tools.map(t=>`<tr><td><b>${t.nama}</b><br><span class="mute">${t.kode} · ${t.lokasi}</span></td><td>${t.kat}</td>
+ <td>${t.tersedia}/${t.total}<div class="bar"><i style="width:${t.total?100*t.tersedia/t.total:0}%"></i></div></td>
+ <td><input type="number" min="1" max="${t.tersedia}" value="1" style="width:70px" id="n${t.id}"></td>
+ <td><input type="date" id="d${t.id}" min="${today()}" max="${add(7)}" value="${add(7)}"></td>
+ <td><button class="pri sm" data-a="ajukan" data-id="${t.id}" ${t.tersedia<1||late?'disabled':''}>Ajukan pinjam</button></td></tr>`).join('')}</table></div>
+ <p class="mute">Durasi pinjam maksimal 7 hari. Perpanjangan satu kali.</p>`;
+}
+function vSaya(){
+ const mine=S.loans.filter(l=>l.uid==me.id).sort((a,b)=>b.id-a.id);
+ return `<div class="card">${loanRows(mine,l=>{
+  const can=l.status==='dipinjam'&&l.ext<1&&!S.loans.some(x=>x.tid==l.tid&&x.status==='diajukan')&&st(l)!=='terlambat';
+  return can?`<button class="sm" data-a="extend" data-id="${l.id}">Perpanjang 7 hari</button>`:'';})}</div>`;
+}
+function vPengajuan(){
+ const open=S.loans.filter(l=>['diajukan','disetujui','dipinjam'].includes(l.status)).sort((a,b)=>a.id-b.id);
+ return `<div class="card">${loanRows(open,l=>{
+  const s=st(l);
+  if(s==='diajukan')return `<button class="pri sm" data-a="approve" data-id="${l.id}">Setujui</button><button class="sm bad" data-a="reject" data-id="${l.id}">Tolak</button>`;
+  if(s==='disetujui')return `<button class="pri sm" data-a="handover" data-id="${l.id}">Serahkan alat</button>`;
+  return `<select id="k${l.id}"><option value="baik">Baik</option><option value="rusak">Rusak</option><option value="hilang">Hilang</option></select><button class="sm" data-a="return" data-id="${l.id}">Terima kembali</button>`;
+ })}</div>`;
+}
+function vAlat(){
+ return `<div class="card tw"><table><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Total</th><th>Tersedia</th><th>Lokasi</th><th>Label QR</th></tr>
+ ${S.tools.map(t=>`<tr><td>${t.kode}</td><td>${t.nama}</td><td>${t.kat}</td><td>${t.total}</td><td>${t.tersedia}</td><td>${t.lokasi}</td><td>${qr(t.kode)}</td></tr>`).join('')}</table></div>
+ <div class="card"><h3>Tambah alat</h3><div class="row" style="margin-top:8px">
+ <input id="tn" placeholder="Nama alat"><input id="tk" placeholder="Kode (ALT-005)"><select id="tc"><option>Alat ukur</option><option>Perkakas</option><option>Perangkat komputer</option></select>
+ <input id="tj" type="number" min="1" value="1" style="width:80px"><input id="tl" placeholder="Lokasi simpan">
+ <button class="pri" data-a="addtool">Simpan alat</button></div></div>`;
+}
+function vPengingat(){
+ const rows=S.loans.filter(l=>l.status==='dipinjam').map(l=>({l,d:Math.round((new Date(l.due)-new Date(today()))/864e5)})).filter(x=>x.d<=1).sort((a,b)=>a.d-b.d);
+ return `<div class="card"><p class="mute">Daftar ini dihitung otomatis. Di versi Laravel, Scheduler mengirim pesan ini lewat WhatsApp atau email setiap hari.</p>
+ ${rows.length?rows.map(x=>`<p><b>${x.d<0?'Terlambat '+(-x.d)+' hari':x.d==0?'Jatuh tempo hari ini':'Jatuh tempo besok'}</b> — ${U(x.l.uid).nama} belum mengembalikan ${x.l.n} ${T(x.l.tid).nama}.</p>`).join(''):'<p>Tidak ada pengingat hari ini.</p>'}</div>`;
+}
+function vDash(){
+ const act=S.loans.filter(l=>['dipinjam'].includes(l.status));
+ const late=act.filter(l=>st(l)==='terlambat');
+ const tot=S.tools.reduce((a,t)=>a+t.total,0),av=S.tools.reduce((a,t)=>a+t.tersedia,0);
+ return `<div class="grid"><div class="stat"><b>${tot}</b>Total unit</div><div class="stat"><b>${av}</b>Tersedia</div><div class="stat"><b>${act.reduce((a,l)=>a+l.n,0)}</b>Sedang dipinjam</div><div class="stat late"><b>${late.length}</b>Pinjaman terlambat</div></div>
+ <div class="card"><h3>Ketersediaan per alat</h3><div class="tw"><table>${S.tools.map(t=>`<tr><td>${t.nama}</td><td>${t.tersedia} dari ${t.total}</td><td><div class="bar"><i style="width:${t.total?100*t.tersedia/t.total:0}%"></i></div></td></tr>`).join('')}</table></div></div>
+ <div class="card"><h3>Daftar keterlambatan</h3>${loanRows(late)}</div>`;
+}
+function csv(){
+ return 'peminjam,alat,jumlah,tgl_ajuan,jatuh_tempo,tgl_kembali,status\n'+S.loans.map(l=>[U(l.uid).nama,T(l.tid).nama,l.n,l.ajuan,l.due,l.kembali||'',st(l)].join(',')).join('\n');
+}
+function vLaporan(){
+ return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Laporan peminjaman</h3><button class="sm" data-a="copy">Salin sebagai CSV</button></div>${loanRows(S.loans.slice().reverse())}</div>
+ <div class="card"><h3>Log aktivitas</h3>${S.logs.length?S.logs.slice(0,15).map(g=>`<p class="mute" style="margin:2px 0">${g.w} — ${g.u}: ${g.a} #${g.l}</p>`).join(''):'<p class="mute">Belum ada aktivitas.</p>'}</div>`;
+}
+let scanner=null,scanned=null;
+const qr=k=>{try{const q=qrcode(0,'M');q.addData(k);q.make();return `<span style="display:inline-block;background:#fff;padding:4px;border-radius:4px;line-height:0">${q.createSvgTag(3,0)}</span>`}catch(e){return k}};
+function stopScan(){if(scanner){const s=scanner;scanner=null;try{s.stop().then(()=>s.clear()).catch(()=>{})}catch(e){}}}
+function startScan(){if(typeof Html5Qrcode==='undefined'||!document.getElementById('qr'))return;scanner=new Html5Qrcode('qr');scanner.start({facingMode:'environment'},{fps:10,qrbox:200},txt=>{const t=S.tools.find(x=>x.kode===txt.trim());if(t){scanned=t.id;render()}},()=>{}).catch(()=>{scanner=null})}
+const retActs=l=>`<select id="k${l.id}"><option value="baik">Baik</option><option value="rusak">Rusak</option><option value="hilang">Hilang</option></select><button class="sm" data-a="return" data-id="${l.id}">Terima kembali</button>`;
+function vScan(){
+ const t=scanned&&T(scanned);let info='';
+ if(t){
+  const head=`<h3>${t.nama}</h3><p class="mute">${t.kode} · tersedia ${t.tersedia} dari ${t.total}</p>`;
+  if(me.role==='plp'){
+   const ls=S.loans.filter(l=>l.tid==t.id&&l.status==='dipinjam');
+   info=`<div class="card">${head}${ls.length?loanRows(ls,retActs):'<p>Tidak ada unit yang sedang dipinjam.</p>'}<button class="sm" data-a="rescan">Pindai lagi</button></div>`;
+  }else{
+   const late=lateOf(me.id);
+   info=`<div class="card">${head}${late?'<div class="msg">Anda masih punya pinjaman terlambat.</div>':''}<div class="row"><input type="number" min="1" max="${t.tersedia}" value="1" style="width:70px" id="n${t.id}"><input type="date" id="d${t.id}" min="${today()}" max="${add(7)}" value="${add(7)}"><button class="pri" data-a="ajukan" data-id="${t.id}" ${t.tersedia<1||late?'disabled':''}>Ajukan pinjam</button><button class="sm" data-a="rescan">Pindai lagi</button></div></div>`;
+  }
+ }
+ return `<div class="card">${t?'':'<div id="qr" style="max-width:320px"></div>'}<div class="row" style="margin-top:8px"><input id="qk" placeholder="Atau ketik kode alat, contoh ALT-001"><button class="pri" data-a="lookup">Cari alat</button></div><p class="mute">Arahkan kamera ke label QR pada alat. Label bisa dilihat dan dicetak dari menu Data alat.</p></div>${info}`;
+}
+const vPengguna=()=>`<div class="card tw"><table><tr><th>Nama</th><th>Peran</th></tr>${S.users.map(u=>`<tr><td>${u.nama}</td><td>${u.role}</td></tr>`).join('')}</table></div><div class="card"><h3>Tambah pengguna</h3><div class="row" style="margin-top:8px"><input id="un" placeholder="Nama lengkap"><select id="ur"><option>peminjam</option><option>plp</option><option>kepala</option><option>admin</option></select><button class="pri" data-a="adduser">Simpan pengguna</button></div></div><div class="card"><h3>Log aktivitas</h3>${S.logs.length?S.logs.slice(0,20).map(g=>`<p class="mute" style="margin:2px 0">${g.w} — ${g.u}: ${g.a} #${g.l}</p>`).join(''):'<p class="mute">Belum ada aktivitas.</p>'}</div>`;
+const views={'Katalog':vKatalog,'Pinjaman saya':vSaya,'Pengajuan':vPengajuan,'Data alat':vAlat,'Pengingat':vPengingat,'Dashboard':vDash,'Laporan':vLaporan,'Pindai QR':vScan,'Pengguna':vPengguna};
+
+function render(){
+ stopScan();const el=document.getElementById('app');
+ if(!me){
+  el.innerHTML=`<header><h1>Peminjaman Alat Bengkel TI</h1><small>SMKN 1 Beringin</small></header><main><div class="login"><h2>Masuk sebagai</h2><p class="mute">Akun contoh untuk mencoba setiap peran.</p>${S.users.map(u=>`<button data-a="login" data-id="${u.id}"><b>${u.nama}</b><br><span class="mute">${u.role}</span></button>`).join('')}<button class="sm" data-a="reset">Reset data contoh</button></div></main>`;
+  return;
+ }
+ const tl=tabs[me.role];if(!tl.includes(tab))tab=tl[0];
+ el.innerHTML=`<header><h1>Peminjaman Alat Bengkel TI</h1><small>${me.nama}</small><button class="sm" data-a="logout">Keluar</button></header><main>${flash?`<div class="msg" role="status">${flash}</div>`:''}<nav>${tl.map(t=>`<button class="${t==tab?'on':''}" data-a="tab" data-id="${t}">${t}</button>`).join('')}</nav>${views[tab]()}</main>`;
+ flash='';
+ if(tab==='Pindai QR'&&!scanned)setTimeout(startScan,0);
+}
+const go=m=>{flash=m||'';save();render()};
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button[data-a]');if(!b)return;
+ const a=b.dataset.a,id=b.dataset.id,l=L(id);
+ if(a==='login'){me=U(id);tab='';return render()}
+ if(a==='logout'){me=null;return render()}
+ if(a==='tab'){tab=id;return render()}
+ if(a==='reset'){S=seed();return go('Data contoh dikembalikan.')}
+ if(a==='ajukan'){
+  const t=T(id),n=+document.getElementById('n'+id).value,d=document.getElementById('d'+id).value;
+  if(lateOf(me.id))return go('Anda masih punya pinjaman terlambat.');
+  if(!(n>=1)||n>t.tersedia)return go('Jumlah harus 1 sampai '+t.tersedia+'.');
+  if(!d||d<today()||d>add(7))return go('Tanggal kembali maksimal 7 hari dari hari ini.');
+  const nl={id:Math.max(0,...S.loans.map(x=>x.id))+1,uid:me.id,tid:t.id,n,ajuan:today(),due:d,kembali:null,status:'diajukan',ext:0,kout:null,kin:null};
+  S.loans.push(nl);log('ajukan',nl.id);tab='Pinjaman saya';return go('Pengajuan terkirim. Tunggu persetujuan PLP.');
+ }
+ if(a==='extend'){l.due=iso(new Date(new Date(l.due+'T00:00').getTime()+7*864e5));l.ext++;log('extend',l.id);return go('Masa pinjam diperpanjang 7 hari.')}
+ if(a==='approve'){if(T(l.tid).tersedia<l.n)return go('Stok tidak cukup untuk disetujui.');l.status='disetujui';log('approve',l.id);return go('Pengajuan disetujui. Serahkan alat ke peminjam.')}
+ if(a==='reject'){l.status='ditolak';log('reject',l.id);return go('Pengajuan ditolak.')}
+ if(a==='handover'){const t=T(l.tid);if(t.tersedia<l.n)return go('Stok tidak cukup.');t.tersedia-=l.n;l.status='dipinjam';l.kout='baik';log('handover',l.id);return go('Alat diserahkan. Stok berkurang.')}
+ if(a==='return'){
+  const k=document.getElementById('k'+id).value,t=T(l.tid);
+  l.kin=k;l.kembali=today();
+  if(k==='hilang'){t.total=Math.max(0,t.total-l.n);l.status='hilang'}else{t.tersedia=Math.min(t.total,t.tersedia+l.n);l.status=k==='rusak'?'rusak':'dikembalikan'}
+  log('return:'+k,l.id);return go('Pengembalian dicatat ('+k+').');
+ }
+ if(a==='addtool'){
+  const g=i=>document.getElementById(i).value.trim(),n=+g('tj');
+  if(!g('tn')||!g('tk')||!(n>=1))return go('Isi nama, kode, dan jumlah alat.');
+  if(S.tools.some(t=>t.kode===g('tk')))return go('Kode alat sudah dipakai.');
+  S.tools.push({id:Math.max(0,...S.tools.map(t=>t.id))+1,kode:g('tk'),nama:g('tn'),kat:g('tc'),total:n,tersedia:n,lokasi:g('tl')||'-'});
+  log('add_tool',S.tools.length);return go('Alat ditambahkan.');
+ }
+ if(a==='lookup'){const t=S.tools.find(x=>x.kode.toLowerCase()===document.getElementById('qk').value.trim().toLowerCase());if(!t)return go('Kode alat tidak ditemukan.');scanned=t.id;return render()}
+ if(a==='rescan'){scanned=null;return render()}
+ if(a==='adduser'){const n=document.getElementById('un').value.trim();if(!n)return go('Isi nama pengguna.');S.users.push({id:Math.max(0,...S.users.map(u=>u.id))+1,nama:n,role:document.getElementById('ur').value});log('add_user',S.users.length);return go('Pengguna ditambahkan.')}
+ if(a==='copy'){try{navigator.clipboard.writeText(csv()).then(()=>go('CSV disalin.'),()=>go('Gagal menyalin.'))}catch(x){go('Gagal menyalin.')}}
+});
+render();
+</script>
+</body>
 </html>
